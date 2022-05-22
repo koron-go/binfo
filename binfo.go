@@ -1,6 +1,7 @@
 package binfo
 
 import (
+	"context"
 	"debug/buildinfo"
 	"go/build"
 	"os"
@@ -28,8 +29,16 @@ type ExeInfo struct {
 	debug.BuildInfo
 }
 
+func readExeInfo(name string) *ExeInfo {
+	bi, err := buildinfo.ReadFile(name)
+	if err != nil {
+		return &ExeInfo{Name: name, Err: err}
+	}
+	return &ExeInfo{Name: name, BuildInfo: *bi}
+}
+
 // List returns list of ExeInfo in GOBIN.
-func List(n int) ([]*ExeInfo, error) {
+func List(ctx context.Context) ([]*ExeInfo, error) {
 	dir := Gobin()
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -37,16 +46,14 @@ func List(n int) ([]*ExeInfo, error) {
 	}
 	var list []*ExeInfo
 	for _, e := range entries {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if e.IsDir() {
 			continue
 		}
 		name := filepath.Join(dir, e.Name())
-		bi, err := buildinfo.ReadFile(name)
-		if err != nil {
-			list = append(list, &ExeInfo{Name: name, Err: err})
-			continue
-		}
-		list = append(list, &ExeInfo{Name: name, BuildInfo: *bi})
+		list = append(list, readExeInfo(name))
 	}
 	return list, nil
 }
