@@ -1,3 +1,3 @@
 module github.com/koron-go/binfo
 
-go 1.17
+go 1.23.1
